@@ -2,11 +2,11 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.serilogj</groupId>
-  <artifactId>serilogj</artifactId>
-  <version>0.6.1</version>
-  <name>serilogj</name>
-  <url>https://github.com/serilogj/serilogj</url>
+  <groupId>org.serilog4j</groupId>
+  <artifactId>serilog4j</artifactId>
+  <version>0.6.2</version>
+  <name>serilog4j</name>
+  <url>https://github.com/dethtroll/serilog4j</url>
   <packaging>jar</packaging>
   
   <developers>
@@ -58,7 +58,7 @@
     <repository>
       <id>github</id>
       <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/serilogj/serilogj</url>
+      <url>https://maven.pkg.github.com/dethtroll/serilog4j</url>
     </repository>
   </distributionManagement>
 </project>
