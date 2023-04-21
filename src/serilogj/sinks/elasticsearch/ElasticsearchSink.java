@@ -7,7 +7,6 @@ import serilogj.events.LogEventLevel;
 import serilogj.formatting.ITextFormatter;
 import serilogj.formatting.json.JsonFormatter;
 import serilogj.sinks.periodicbatching.PeriodicBatchingSink;
-import serilogj.sinks.seq.SeqApi;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -21,7 +20,6 @@ public class ElasticsearchSink extends PeriodicBatchingSink {
     public static final int DefaultBatchPostingLimit = 1000;
     public static final Duration DefaultPeriod = Duration.ofSeconds(2);
     private static final Duration RequiredLevelCheckInterval = Duration.ofMinutes(2);
-    private static final String AuthHeaderName = "X-Seq-ApiKey";
 
     private final URL baseUrl;
     private final Long eventBodyLimitBytes;
@@ -29,12 +27,12 @@ public class ElasticsearchSink extends PeriodicBatchingSink {
     private LocalDateTime nextRequiredLevelCheck = LocalDateTime.now().plus(RequiredLevelCheckInterval);
     private final Map<String, String> httpHeaders;
 
-    public ElasticsearchSink(String serverUrl, String indexFormat, String login, String password, Long eventBodyLimitBytes, LoggingLevelSwitch levelSwitch) {
-        this(serverUrl, indexFormat, true, login, password, null, null, null, eventBodyLimitBytes, levelSwitch);
+    public ElasticsearchSink(String serverUrl, String indexFormat, String login, String password, Duration period, Long eventBodyLimitBytes, LoggingLevelSwitch levelSwitch) {
+        this(serverUrl, indexFormat, true, login, password, null, null, period, eventBodyLimitBytes, levelSwitch);
     }
     public ElasticsearchSink(
             String serverUrl,
-            String indexFormat,
+            String indexName,
             boolean autoRegisterTemplate,
             String login,
             String password,
@@ -57,7 +55,7 @@ public class ElasticsearchSink extends PeriodicBatchingSink {
         this.eventBodyLimitBytes = eventBodyLimitBytes;
         this.levelSwitch = levelSwitch;
 
-        String rawUrl = serverUrl + indexFormat + "/_bulk/";
+        String rawUrl = serverUrl + indexName + "/_bulk/";
         try {
             baseUrl = new URL(rawUrl);
         } catch (MalformedURLException e) {
@@ -66,7 +64,7 @@ public class ElasticsearchSink extends PeriodicBatchingSink {
         }
 
         Map<String, String> httpHeaders = new HashMap<>();
-        httpHeaders.put("Content-Type", "application/json; charset=utf-8");
+        httpHeaders.put("Content-Type", "application/json");
         if(customHttpHeaders != null) {
             httpHeaders.putAll(customHttpHeaders);
         }
@@ -95,12 +93,14 @@ public class ElasticsearchSink extends PeriodicBatchingSink {
                                 "Event JSON representation exceeds the byte size limit of %d set for this sink and will be dropped; data: %s",
                                 eventBodyLimitBytes, buffered);
                     } else {
-                        payload.write("{\"index\": {}}");
+                        payload.write("{\"index\": {}}\n");
                         formatter.format(logEvent, payload);
+                        payload.write("\n");
                     }
                 } else {
-                    payload.write("{\"index\": {}}");
+                    payload.write("{\"index\": {}}\n");
                     formatter.format(logEvent, payload);
+                    payload.write("\n");
                 }
             }
         } catch (IOException e) {
@@ -138,10 +138,7 @@ public class ElasticsearchSink extends PeriodicBatchingSink {
                 throw new IOException(response);
             }
 
-            LogEventLevel level = SeqApi.readEventInputResult(response);
-            if (level != null && levelSwitch == null) {
-                levelSwitch = new LoggingLevelSwitch(level);
-            }
+            ElasticApi.readEventInputResult(response);
         } catch (IOException e) {
             SelfLog.writeLine("Error sending events to Seq, exception %s", e.getMessage());
         }
